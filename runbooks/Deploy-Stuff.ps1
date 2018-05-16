@@ -35,9 +35,12 @@ catch {
 #Set some global Vars
 
 $kvname = Get-AutomationVariable -Name "keyvaultname"
-$dscregurl = get-AutomationVariable -Name "registrationurl"
+$dscregurl = Get-AutomationVariable -Name "registrationurl"
+$dscregkey = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "registrationkey").SecretValueText
 $vmadminPass = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "adminpass").SecretValue
-$templaterepo = Get-AutomationVariable -Name "templaterepo"
+$vnettemplate = Get-AutomationVariable -Name "vnettemplate"
+$vmtemplate = Get-AutomationVariable -Name "vmtemplate"
+
 
 #Build VNET in a Resource Group
 
@@ -57,11 +60,53 @@ catch {
 
 #Build a parameters Hash for the VNet Template
 $vnetparams = @{
-
-
+'vnetName' = $vnetname
 }
 
+#Call an ARM deployment using a template artifact
 try 
 { 
-    New-AzureRmResourceGroupDeployment -Name "VNET Deployment" -ResourceGroupName $vnetrg -Mode Incremental -TemplateUri $templaterepo -TemplateParameterObject $vnetparams
+    New-AzureRmResourceGroupDeployment -Name "VNET Deployment" -ResourceGroupName $vnetrg -Mode Incremental -TemplateUri $vnettemplate -TemplateParameterObject $vnetparams
 }
+catch {
+    Write-Error -Message $_.Exception
+    throw $_.Exception
+    }
+
+#Build parameters hash for VM deployment
+$vmparams = @{
+'adminUsername' = "azureuser";
+'adminPassword' = $vmadminPass;
+'numberOfInstances' = $numberOfInstances;
+'vmNamePrefix' = $vmPrefix;
+'registrationKey' = $dscregkey;
+'registrationUrl' = $dscregurl;
+'nodeConfigurationName' = $dscNodeName;
+'virtualNetworkName' = $vnetName;
+'virtualNetworkResourceGroup' = $vnetrg;
+'subnetName' = "Subnet1"
+}
+
+try
+{
+    $vmrg = Get-AzureRmResourceGroup -Name VMs -ea 0
+
+    (if!($vmrg))
+    {
+        New-AzureRmResourceGroup -Name VNET -Location $location
+    }
+}
+catch {
+    Write-Error -Message $_.Exception
+    throw $_.Exception
+    }
+
+#Call ARM deployment for the VM resource using a template artifact
+try
+{
+    New-AzureRmResourceGroupDeployment -Name "VM Deployment" -Mode Incremental -ResourceGroupName $vmrg -TemplateUri $vmtemplate -TemplateParameterObject $vmparams
+    }
+catch {
+    Write-Error -Message $_.Exception
+    throw $_.Exception
+    }
