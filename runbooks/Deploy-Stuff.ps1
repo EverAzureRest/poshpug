@@ -48,8 +48,7 @@ catch {
 #Set some global Vars
 
 $kvname = Get-AutomationVariable -Name "keyvaultname"
-$dscregurl = Get-AutomationVariable -Name "registrationurl"
-$dscregkey = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "registrationkey").SecretValueText
+$dscregkey = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "registrationkey").SecretValue
 $vmadminPass = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "adminpass").SecretValue
 $vnettemplate = Get-AutomationVariable -Name "vnettemplate"
 $vmtemplate = Get-AutomationVariable -Name "vmtemplate"
@@ -100,10 +99,9 @@ $vmparams = @{
 'numberOfInstances' = $numberOfInstances;
 'vmNamePrefix' = $vmPrefix;
 'registrationKey' = $dscregkey;
-'registrationUrl' = $dscregurl;
 'nodeConfigurationName' = $dscNodeName;
 'virtualNetworkName' = $vnetName;
-'virtualNetworkResourceGroup' = $vnetrg;
+'virtualNetworkResourceGroup' = $vnetrgname;
 'subnetName' = "Subnet1";
 'timestamp' = $timestamp
 }
