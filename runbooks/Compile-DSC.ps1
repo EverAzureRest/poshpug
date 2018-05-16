@@ -1,10 +1,13 @@
 ﻿param(
-$automationRG,
-$automationAcct
+$automationRG = "AutomationAccounts",
+$automationAcct = "PoshPug"
 )
 
     
-    $connectionName = "AzureRunAsConnection"
+<#RunAs Account Permissions are not sufficient by default to compile DSC jobs    
+
+
+$connectionName = "AzureRunAsConnection"
 try
 {
     # Get the connection "AzureRunAsConnection "
@@ -26,19 +29,19 @@ catch {
         Write-Error -Message $_.Exception
         throw $_.Exception
     }
-}            $ConfigurationData = @{
+}#>          $ConfigurationData = @{
         AllNodes = @(
             @{
                 NodeName = 'Localhost'
                 PSDscAllowPlainTextPassword = $true
             }
         )
-    }
+    }
 
     $CompileParams = @{
         ResourceGroupName     = $automationRG
         AutomationAccountName = $automationAcct
-        ConfigurationName     = HybridWorkerNode
+        ConfigurationName     = "HybridWorkerNode"
         ConfigurationData     = $ConfigurationData
     }
 

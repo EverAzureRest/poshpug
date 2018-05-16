@@ -1,11 +1,22 @@
 param(
-$vnetName,
-$region,
-$vmPrefix,
-$numberOfInstances,
-$dscNodeName
+[object]$WebhookData
 
 )
+
+if ($WebhookData -ne $null)
+    {
+    $params = $WebhookData.RequestBody | ConvertFrom-Json
+
+    $vnetName = $params.vnetName
+    $region = $params.region
+    $vmPrefix = $params.vmPrefix
+    $numberofInstances = $params.numberOfInstances
+    $dscNodeName = $params.dscNodeName
+    }
+
+else { $ErrorMessage = "The Parameters block from the webhook is null"
+        throw $ErrorMessage
+        }
 
 #Login as ServicePrincipal
 $connectionName = "AzureRunAsConnection"
