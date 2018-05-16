@@ -13,25 +13,29 @@
       "type": "string",
       "metadata": {
         "description": "Address prefix"
-      }
+      },
+      "defaultValue": "10.10.0.0/16"
     },
     "subnet1Prefix": {
       "type": "string",
       "metadata": {
         "description": "Subnet 1 Prefix"
-      }
+      },
+      "defaultValue": "10.10.1.0/24"
     },
     "subnet1Name": {
       "type": "string",
       "metadata": {
         "description": "Subnet 1 Name"
-      }
+      },
+      "defaultValue": "Subnet1"
     },
     "subnet2Prefix": {
       "type": "string",
       "metadata": {
         "description": "Subnet 2 Prefix"
-      }
+      },
+      "defaultValue": "10.10.2.0/24"
     },
     "subnet2Name": {
       "type": "string",
@@ -40,22 +44,42 @@
         "description": "Subnet 2 Name"
       }
     },
-    "subnet3Name": {
+    "nsgName": {
       "type": "string",
-      "metadata": {
-        "description": "Subnet 3 Name"
-      }
-    },
-    "subnet3Prefix": {
-      "type": "string",
-      "metadata": {
-        "description": "Subnet 3 Prefix"
-      }
+      "defaultValue": "rdprule"
     }
   },
       "variables": {
+        "nsgID": "[concat(subscription().Id, '/resourceGroups/', resourceGroup().Name, '/providers/', 'Microsoft.Network/networkSecurityGroups/', parameters('nsgName'))]"
   },
   "resources": [
+    {
+        "name": "[parameters('nsgName')]",
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "apiVersion": "2017-10-01",
+        "location": "[resourceGroup().location]",
+        "tags":  {
+            "displayName": "[parameters('nsgName')]"
+          },
+        "properties": {
+            "securityRules": [
+            {
+                "name": "rdpin",
+                "properties": 
+                {
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "3389",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "VirtualNetwork",
+                "access": "Allow",
+                "priority": 100,
+                "direction":"Inbound"
+                }
+            }
+          ]
+          }
+        },
     {
       "apiVersion": "2016-03-30",
       "type": "Microsoft.Network/virtualNetworks",
@@ -71,19 +95,16 @@
           {
             "name": "[parameters('subnet1Name')]",
             "properties": {
-              "addressPrefix": "[parameters('subnet1Prefix')]"
+              "addressPrefix": "[parameters('subnet1Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[variables('nsgID')]"
+              }
             }
           },
           {
             "name": "[parameters('subnet2Name')]",
             "properties": {
               "addressPrefix": "[parameters('subnet2Prefix')]"
-            }
-          },
-          {
-            "name": "[parameters('subnet3Name')]",
-            "properties": {
-              "addressPrefix": "[parameters('subnet3Prefix')]"
             }
           }
         ]
