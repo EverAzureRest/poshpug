@@ -19,6 +19,7 @@
       "type": "string",
       "defaultValue": "2016-Datacenter",
       "allowedValues": [
+        "2016-Datacenter",
         "2016-Datacenter-with-Containers",
         "2016-Nano-Server"
       ],
@@ -76,7 +77,8 @@
       "type": "string",
       "metadata": {
         "description": "Registration url of the Azure Automation DSC pull/reporting server"
-      }
+      },
+      "defaultValue": "https://eus2-agentservice-prod-1.azure-automation.net/accounts/4d8a19fa-bd2b-405f-bc3f-78ccc92b9b70"
     },
     "nodeConfigurationName": {
       "type": "string",
