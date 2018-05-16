@@ -1,4 +1,4 @@
-param(
+﻿param(
 [object]$WebhookData
 
 )
@@ -8,7 +8,7 @@ if ($WebhookData -ne $null)
     $params = $WebhookData.RequestBody | ConvertFrom-Json
 
     $vnetName = $params.vnetName
-    $region = $params.region
+    $location = $params.region
     $vmPrefix = $params.vmPrefix
     $numberofInstances = $params.numberOfInstances
     $dscNodeName = $params.dscNodeName
@@ -31,6 +31,8 @@ try
         -TenantId $servicePrincipalConnection.TenantId `
         -ApplicationId $servicePrincipalConnection.ApplicationId `
         -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint 
+
+    Set-AzureRmContext -SubscriptionId 6804f610-18f5-481e-9f8c-00cdf8da6836
 }
 catch {
     if (!$servicePrincipalConnection)
@@ -51,17 +53,24 @@ $dscregkey = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "registrationkey"
 $vmadminPass = (Get-AzureKeyVaultSecret -VaultName $kvname -Name "adminpass").SecretValue
 $vnettemplate = Get-AutomationVariable -Name "vnettemplate"
 $vmtemplate = Get-AutomationVariable -Name "vmtemplate"
+$vnetrgname = "VNET"
+$vmrgname = "VMs"
+[string]$timestamp = (get-date -Format "MM/dd/yyyy H:mm:ss tt")
 
+if ($vmadminPass -eq $null)
+    {$ErrorMessage = "Access issue to Keyvault - Check Access Policies on KeyVault"
+     throw $ErrorMessage
+    }
 
 #Build VNET in a Resource Group
 
 try
 {
-    $vnetrg = Get-AzureRmResourceGroup -Name VNET -ea 0
+    $vnetrg = Get-AzureRmResourceGroup -Name $vnetrgname -ea 0
 
-    (if!($vnetrg))
+    if (!$vnetrg)
     {
-        New-AzureRmResourceGroup -Name VNET -Location $location
+        New-AzureRmResourceGroup -Name $vnetrgname -Location $location
     }
 }
 catch {
@@ -71,13 +80,13 @@ catch {
 
 #Build a parameters Hash for the VNet Template
 $vnetparams = @{
-'vnetName' = $vnetname
+'vnetName' = $vnetName
 }
 
 #Call an ARM deployment using a template artifact
 try 
 { 
-    New-AzureRmResourceGroupDeployment -Name "VNET Deployment" -ResourceGroupName $vnetrg -Mode Incremental -TemplateUri $vnettemplate -TemplateParameterObject $vnetparams
+    New-AzureRmResourceGroupDeployment -Name "VNETDeployment" -ResourceGroupName $vnetrgname -Mode Incremental -TemplateUri $vnettemplate -TemplateParameterObject $vnetparams
 }
 catch {
     Write-Error -Message $_.Exception
@@ -95,16 +104,17 @@ $vmparams = @{
 'nodeConfigurationName' = $dscNodeName;
 'virtualNetworkName' = $vnetName;
 'virtualNetworkResourceGroup' = $vnetrg;
-'subnetName' = "Subnet1"
+'subnetName' = "Subnet1";
+'timestamp' = $timestamp
 }
 
 try
 {
-    $vmrg = Get-AzureRmResourceGroup -Name VMs -ea 0
+    $vmrg = Get-AzureRmResourceGroup -Name $vmrgname -ea 0
 
-    (if!($vmrg))
+    if (!$vmrg)
     {
-        New-AzureRmResourceGroup -Name VNET -Location $location
+      New-AzureRmResourceGroup -Name $vmrgname -Location $location
     }
 }
 catch {
@@ -115,7 +125,7 @@ catch {
 #Call ARM deployment for the VM resource using a template artifact
 try
 {
-    New-AzureRmResourceGroupDeployment -Name "VM Deployment" -Mode Incremental -ResourceGroupName $vmrg -TemplateUri $vmtemplate -TemplateParameterObject $vmparams
+    New-AzureRmResourceGroupDeployment -Name "VMDeployment" -Mode Incremental -ResourceGroupName $vmrgname -TemplateUri $vmtemplate -TemplateParameterObject $vmparams
     }
 catch {
     Write-Error -Message $_.Exception
