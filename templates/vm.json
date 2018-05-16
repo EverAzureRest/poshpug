@@ -19,6 +19,7 @@
       "type": "string",
       "defaultValue": "2016-Datacenter",
       "allowedValues": [
+        "2016-Datacenter",
         "2016-Datacenter-with-Containers",
         "2016-Nano-Server"
       ],
